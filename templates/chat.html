@@ -26,7 +26,12 @@
                 <strong>{{ message.sender.username }}:</strong> {{ message.content }}
                 {% if message.image_path %}
                     <br>
-                    <img src="{{ url_for('static', filename=message.image_path.split('static/')[1]) }}" class="message-img">
+                    {% set img_path = message.image_path.lstrip('/') %}
+                    {% if img_path.startswith('static/') %}
+                        <img src="{{ url_for('static', filename=img_path.split('static/')[1]) }}" class="message-img">
+                    {% else %}
+                        <img src="{{ url_for('static', filename=img_path) }}" class="message-img">
+                    {% endif %}
                 {% endif %}
             </li>
         {% endfor %}

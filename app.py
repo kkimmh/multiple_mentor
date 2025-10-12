@@ -20,15 +20,16 @@ socketio = SocketIO(app)
 
 # DB 초기화
 with app.app_context():
-    if not os.path.exists("database.db"):
-        db.create_all()
-        print("✅ 새 데이터베이스 생성 완료.")
+    # ⚠️ Render는 database.db 파일이 항상 사라지므로,
+    #    항상 db.create_all()을 호출하여 테이블 구조를 보장합니다.
+    #    데이터가 사라지는 것은 개발 단계의 SQLite 한계입니다.
+    db.create_all()
+    print("✅ 데이터베이스 테이블 구조 확인 및 생성 완료.")
 
     if not User.query.filter_by(is_admin=True).first():
+        # ... (관리자 계정 생성 로직은 그대로) ...
         admins = [
-            User(username="admin1", password=generate_password_hash("127127"), is_admin=True),
-            User(username="admin2", password=generate_password_hash("127127"), is_admin=True),
-            User(username="admin3", password=generate_password_hash("127127"), is_admin=True)
+            # ... (관리자 정보)
         ]
         db.session.add_all(admins)
         db.session.commit()
@@ -219,6 +220,9 @@ def upload_action():
 
 # -------------------- 👆 여기까지 추가 👆 --------------------
 
+# app.py 파일 하단 (wsgi.py를 위해 이 코드는 이제 사용되지 않음)
+
 if __name__ == "__main__":
-    # 로컬에서 실행할 때만 사용됩니다.
-    socketio.run(app, debug=True, port=5000)
+    # with app.app_context(): # <-- 이 부분을 이제 지우거나 주석 처리
+    #     db.create_all()     # <-- 이 부분을 이제 지우거나 주석 처리
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
