@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>사진 업로드 테스트</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        .flash { background-color: #e0f7fa; border: 1px solid #00796b; padding: 1em; margin-bottom: 1em; border-radius: 5px; }
+        .gallery { display: flex; flex-wrap: wrap; gap: 1em; }
+        .gallery div { border: 1px solid #ddd; padding: 0.5em; text-align: center; }
+        .gallery img { max-width: 200px; height: auto; display: block; margin-bottom: 0.5em; }
+    </style>
+</head>
+<body>
+    <h1>📸 사진 업로드 테스트 페이지</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="flash">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('upload_action') }}" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">업로드</button>
+    </form>
+
+    <hr>
+
+    <h2>🖼️ 업로드된 사진 목록</h2>
+    <div class="gallery">
+        {% for f in files %}
+            <div>
+                <img src="{{ url_for('static', filename='uploads/' + f) }}" alt="{{ f }}"><br>
+                <span>{{ f }}</span>
+            </div>
+        {% else %}
+            <p>업로드된 사진이 없습니다.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

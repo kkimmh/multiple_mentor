@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>대화 목록</title>
+</head>
+<body>
+  <h2>{{ user.username }}님의 대화 목록</h2>
+
+  <ul>
+    {% for c in conversations %}
+      <li><a href="{{ url_for('chat', conversation_id=c.id) }}">{{ c.title }}</a></li>
+    {% else %}
+      <li>대화방이 없습니다.</li>
+    {% endfor %}
+  </ul>
+
+  {% if not user.is_admin %}
+    <a href="{{ url_for('create_conversation') }}">새 대화방 만들기</a><br>
+  {% endif %}
+  
+  <a href="{{ url_for('logout') }}">로그아웃</a>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ conversation.title }} - 채팅</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body { font-family: sans-serif; }
+        #messages { list-style-type: none; margin: 0; padding: 0; border: 1px solid #ccc; height: 400px; overflow-y: scroll; }
+        #messages li { padding: 8px 12px; }
+        #messages li:nth-child(odd) { background: #f2f2f2; }
+        .message-img { max-width: 200px; max-height: 200px; border-radius: 5px; margin-top: 5px; }
+        #chat-form { display: flex; margin-top: 10px; }
+        #message-input { flex-grow: 1; padding: 8px; }
+        #image-input { display: none; }
+        .upload-btn { padding: 8px 12px; cursor: pointer; background: #ddd; border: 1px solid #ccc; }
+        button { padding: 8px 12px; }
+    </style>
+</head>
+<body>
+    <h1>{{ conversation.title }}</h1>
+    <a href="{{ url_for('chat_list') }}">목록으로 돌아가기</a>
+    <ul id="messages">
+        {% for message in messages %}
+            <li>
+                <strong>{{ message.sender.username }}:</strong> {{ message.content }}
+                {% if message.image_path %}
+                    <br>
+                    <img src="{{ url_for('static', filename=message.image_path.split('static/')[1]) }}" class="message-img">
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+
+    <form id="chat-form" style="margin-top: 10px;">
+        <label for="image-input" class="upload-btn">🖼️</label>
+        <input type="file" id="image-input" accept="image/*">
+        
+        <input type="text" id="message-input" autocomplete="off" placeholder="메시지를 입력하세요...">
+        <button type="submit">전송</button>
+    </form>
+
+    <script>
+        const socket = io();
+        const conversationId = {{ conversation.id }};
+        const userId = {{ user.id }};
+
+        socket.on('connect', () => {
+            socket.emit('join', { conversation_id: conversationId });
+        });
+
+        // 메시지 수신 처리
+        socket.on('receive_message', (data) => {
+            const item = document.createElement('li');
+            let content = `<strong>사용자 ${data.sender_id}:</strong> ${data.content}`;
+            if (data.image_url) {
+                // 'static/uploads/filename.jpg' -> '/static/uploads/filename.jpg'
+                const imageUrl = data.image_url.startsWith('/') ? data.image_url : '/' + data.image_url;
+                content += `<br><img src="${imageUrl}" class="message-img">`;
+            }
+            item.innerHTML = content;
+            document.getElementById('messages').appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        // 폼 제출 이벤트 처리
+        document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageInput = document.getElementById('message-input');
+            const imageInput = document.getElementById('image-input');
+            const messageText = messageInput.value.trim();
+            const imageFile = imageInput.files[0];
+
+            if (!messageText && !imageFile) {
+                return; // 내용과 이미지가 모두 없으면 전송 안 함
+            }
+
+            let imageUrl = null;
+
+            // 1. 이미지가 있으면 서버에 먼저 업로드
+            if (imageFile) {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+
+                try {
+                    const response = await fetch('/upload_image', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    
+                    if (result.image_url) {
+                        imageUrl = result.image_url.substring(1); // 맨 앞 '/' 제거
+                    } else {
+                        alert('이미지 업로드 실패: ' + result.error);
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    alert('이미지 업로드 중 오류 발생');
+                    return;
+                }
+            }
+
+            // 2. 텍스트와 이미지 URL을 소켓으로 전송
+            socket.emit('send_message', {
+                conversation_id: conversationId,
+                user_id: userId,
+                content: messageText,
+                image_url: imageUrl
+            });
+
+            // 입력 필드 초기화
+            messageInput.value = '';
+            imageInput.value = ''; // 파일 선택 초기화
+        });
+    </script>
+</body>
+</html>
