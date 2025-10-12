@@ -6,10 +6,62 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         body { font-family: sans-serif; }
-        #messages { list-style-type: none; margin: 0; padding: 0; border: 1px solid #ccc; height: 400px; overflow-y: scroll; }
-        #messages li { padding: 8px 12px; }
-        #messages li:nth-child(odd) { background: #f2f2f2; }
-        .message-img { max-width: 200px; max-height: 200px; border-radius: 5px; margin-top: 5px; }
+        
+        #messages { 
+            list-style-type: none; 
+            margin: 0; 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            height: 400px; 
+            overflow-y: scroll; 
+            display: flex; /* Flexbox 활성화 */
+            flex-direction: column; /* 메시지를 세로로 쌓음 */
+        }
+        
+        /* 개별 메시지 컨테이너 스타일 */
+        .message-container {
+            display: flex;
+            margin-bottom: 10px;
+            max-width: 80%; /* 채팅 폭 제한 */
+        }
+
+        /* 내 메시지 (오른쪽 정렬) */
+        .message-right {
+            align-self: flex-end; /* 컨테이너를 오른쪽으로 */
+            margin-left: auto;
+        }
+        /* 상대방 메시지 (왼쪽 정렬) */
+        .message-left {
+            align-self: flex-start; /* 컨테이너를 왼쪽으로 */
+            margin-right: auto;
+        }
+
+        /* 메시지 내용 박스 */
+        .message-bubble {
+            padding: 10px;
+            border-radius: 15px;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+
+        /* 내 메시지 버블 */
+        .message-right .message-bubble {
+            background-color: #dcf8c6; /* 연두색 */
+        }
+        /* 상대방 메시지 버블 */
+        .message-left .message-bubble {
+            background-color: #ffffff; /* 흰색 */
+            border: 1px solid #ddd;
+        }
+
+        .message-info {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        
+        .message-img { max-width: 200px; max-height: 200px; border-radius: 5px; margin-top: 5px; display: block; }
+        
         #chat-form { display: flex; margin-top: 10px; }
         #message-input { flex-grow: 1; padding: 8px; }
         #image-input { display: none; }
@@ -20,25 +72,27 @@
 <body>
     <h1>{{ conversation.title }}</h1>
     <a href="{{ url_for('chat_list') }}">목록으로 돌아가기</a>
-    <ul id="messages">
+    
+    <div id="messages">
         {% for message in messages %}
-            <li>
-                {% if message.sender %}
-                    <strong>{{ message.sender.username }}:</strong>
-                {% else %}
-                    <strong>(알 수 없는 사용자):</strong>
-                {% endif %}
-                
-                {{ message.content }}
-                
-                {% if message.image_path %}
-                    <br>
-                    {% set img_path = message.image_path.lstrip('/') %}
-                    <img src="{{ url_for('static', filename=img_path.split('static/')[1]) if 'static/' in img_path else url_for('static', filename='uploads/' + img_path) }}" class="message-img">
-                {% endif %}
-            </li>
+            {% set is_mine = message.sender_id == user.id %}
+            <div class="message-container {% if is_mine %}message-right{% else %}message-left{% endif %}">
+                <div class="message-bubble">
+                    <div class="message-info">
+                        <strong>{{ message.sender.username if message.sender else '알 수 없는 사용자' }}:</strong>
+                    </div>
+                    
+                    {{ message.content }}
+                    
+                    {% if message.image_path %}
+                        <br>
+                        {% set img_path = message.image_path.lstrip('/') %}
+                        <img src="{{ url_for('static', filename=img_path.split('static/')[1]) if 'static/' in img_path else url_for('static', filename=img_path) }}" class="message-img">
+                    {% endif %}
+                </div>
+            </div>
         {% endfor %}
-    </ul>
+    </div>
 
     <form id="chat-form" style="margin-top: 10px;">
         <label for="image-input" class="upload-btn">🖼️</label>
@@ -52,26 +106,53 @@
         const socket = io();
         const conversationId = {{ conversation.id }};
         const userId = {{ user.id }};
+        const currentUsername = "{{ user.username }}"; // 현재 사용자 이름
 
         socket.on('connect', () => {
             socket.emit('join', { conversation_id: conversationId });
         });
 
-        // 메시지 수신 처리
-        socket.on('receive_message', (data) => {
-            const item = document.createElement('li');
-            let content = `<strong>사용자 ${data.sender_id}:</strong> ${data.content}`;
+        function createMessageElement(data) {
+            const isMine = data.sender_id == userId;
+            
+            const container = document.createElement('div');
+            container.classList.add('message-container');
+            container.classList.add(isMine ? 'message-right' : 'message-left');
+
+            const bubble = document.createElement('div');
+            bubble.classList.add('message-bubble');
+
+            // 사용자명 (소켓 수신 시 sender_id만 오므로 여기서 처리)
+            const senderName = isMine ? currentUsername : `사용자 ${data.sender_id}`; 
+            
+            // Render 배포 시 상대방 이름(admin1 등)을 실시간으로 가져오기 어려우므로, 
+            // 현재는 임시로 "사용자 ID" 또는 "내 이름"으로 표시합니다.
+            // (정확한 상대방 이름을 표시하려면 소켓 메시지 전송 시 상대방 이름 정보를 포함해야 합니다.)
+            
+            let htmlContent = `<div class="message-info"><strong>${isMine ? currentUsername : '상대방'}</strong></div>`;
+            
+            htmlContent += data.content || '';
+
             if (data.image_url) {
-                // 'static/uploads/filename.jpg' -> '/static/uploads/filename.jpg'
                 const imageUrl = data.image_url.startsWith('/') ? data.image_url : '/' + data.image_url;
-                content += `<br><img src="${imageUrl}" class="message-img">`;
+                htmlContent += `<br><img src="${imageUrl}" class="message-img">`;
             }
-            item.innerHTML = content;
-            document.getElementById('messages').appendChild(item);
-            window.scrollTo(0, document.body.scrollHeight);
+            
+            bubble.innerHTML = htmlContent;
+            container.appendChild(bubble);
+            
+            return container;
+        }
+
+
+        // 메시지 수신 처리 (실시간)
+        socket.on('receive_message', (data) => {
+            const messageElement = createMessageElement(data);
+            document.getElementById('messages').appendChild(messageElement);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
         });
 
-        // 폼 제출 이벤트 처리
+        // 폼 제출 이벤트 처리 (이전과 동일)
         document.getElementById('chat-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const messageInput = document.getElementById('message-input');
@@ -80,7 +161,7 @@
             const imageFile = imageInput.files[0];
 
             if (!messageText && !imageFile) {
-                return; // 내용과 이미지가 모두 없으면 전송 안 함
+                return;
             }
 
             let imageUrl = null;
@@ -98,7 +179,7 @@
                     const result = await response.json();
                     
                     if (result.image_url) {
-                        imageUrl = result.image_url.substring(1); // 맨 앞 '/' 제거
+                        imageUrl = result.image_url.substring(1);
                     } else {
                         alert('이미지 업로드 실패: ' + result.error);
                         return;
@@ -120,7 +201,13 @@
 
             // 입력 필드 초기화
             messageInput.value = '';
-            imageInput.value = ''; // 파일 선택 초기화
+            imageInput.value = '';
+        });
+
+        // 페이지 로드 후 스크롤을 맨 아래로 이동
+        document.addEventListener('DOMContentLoaded', () => {
+            const messageContainer = document.getElementById('messages');
+            messageContainer.scrollTop = messageContainer.scrollHeight;
         });
     </script>
 </body>

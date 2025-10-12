@@ -1,24 +1,52 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>대화 목록</title>
+    <meta charset="UTF-8">
+    <title>대화 목록</title>
+    <style>
+        /* 삭제 버튼 스타일을 좀 더 보기 좋게 추가 */
+        .conversation-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .delete-link {
+            margin-left: 15px;
+            color: red;
+            text-decoration: none;
+            font-size: 0.9em;
+            padding: 2px 5px;
+            border: 1px solid red;
+            border-radius: 4px;
+        }
+        .delete-link:hover {
+            background-color: #ffe0e0;
+        }
+    </style>
 </head>
 <body>
-  <h2>{{ user.username }}님의 대화 목록</h2>
+    <h2>{{ user.username }}님의 대화 목록</h2>
 
-  <ul>
-    {% for c in conversations %}
-      <li><a href="{{ url_for('chat', conversation_id=c.id) }}">{{ c.title }}</a></li>
-    {% else %}
-      <li>대화방이 없습니다.</li>
-    {% endfor %}
-  </ul>
+    <ul>
+        {% for c in conversations %}
+            <li class="conversation-item">
+                <a href="{{ url_for('chat', conversation_id=c.id) }}">{{ c.title }}</a>
+                
+                {% if user.is_admin %}
+                    <a href="{{ url_for('delete_conversation', conversation_id=c.id) }}"
+                       onclick="return confirm('정말로 [{{ c.title }}] 채팅방을 삭제하시겠습니까? (메시지 포함)');"
+                       class="delete-link">[삭제]</a>
+                {% endif %}
+                </li>
+        {% else %}
+            <li>대화방이 없습니다.</li>
+        {% endfor %}
+    </ul>
 
-  {% if not user.is_admin %}
-    <a href="{{ url_for('create_conversation') }}">새 대화방 만들기</a><br>
-  {% endif %}
-  
-  <a href="{{ url_for('logout') }}">로그아웃</a>
+    {% if not user.is_admin %}
+        <a href="{{ url_for('create_conversation') }}">새 대화방 만들기</a><br>
+    {% endif %}
+    
+    <a href="{{ url_for('logout') }}">로그아웃</a>
 </body>
 </html>

@@ -218,9 +218,30 @@ def upload_action():
         flash(f'"{filename}" 파일이 성공적으로 업로드되었습니다!')
         return redirect(url_for('upload_test'))
 
-# -------------------- 👆 여기까지 추가 👆 --------------------
+# app.py 파일의 @app.route("/chat_list") 아래, 기존 라우트들 사이에 추가
 
-# app.py 파일 하단 (wsgi.py를 위해 이 코드는 이제 사용되지 않음)
+@app.route("/delete_conversation/<int:conversation_id>")
+def delete_conversation(conversation_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user = User.query.get(session["user_id"])
+    conversation = Conversation.query.get_or_404(conversation_id)
+
+    # 1. 관리자인지 확인
+    if not user.is_admin:
+        flash("채팅방을 삭제할 권한이 없습니다.")
+        return redirect(url_for("chat_list"))
+
+    # 2. 대화방에 속한 모든 메시지 삭제
+    Message.query.filter_by(conversation_id=conversation_id).delete()
+    
+    # 3. 대화방 자체 삭제
+    db.session.delete(conversation)
+    db.session.commit()
+    
+    flash(f"'{conversation.title}' 대화방이 삭제되었습니다.")
+    return redirect(url_for("chat_list"))
 
 if __name__ == "__main__":
      socketio.run(app, host="0.0.0.0", port=5000, debug=True)
