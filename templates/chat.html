@@ -23,15 +23,18 @@
     <ul id="messages">
         {% for message in messages %}
             <li>
-                <strong>{{ message.sender.username }}:</strong> {{ message.content }}
+                {% if message.sender %}
+                    <strong>{{ message.sender.username }}:</strong>
+                {% else %}
+                    <strong>(알 수 없는 사용자):</strong>
+                {% endif %}
+                
+                {{ message.content }}
+                
                 {% if message.image_path %}
                     <br>
                     {% set img_path = message.image_path.lstrip('/') %}
-                    {% if img_path.startswith('static/') %}
-                        <img src="{{ url_for('static', filename=img_path.split('static/')[1]) }}" class="message-img">
-                    {% else %}
-                        <img src="{{ url_for('static', filename=img_path) }}" class="message-img">
-                    {% endif %}
+                    <img src="{{ url_for('static', filename=img_path.split('static/')[1]) if 'static/' in img_path else url_for('static', filename='uploads/' + img_path) }}" class="message-img">
                 {% endif %}
             </li>
         {% endfor %}
