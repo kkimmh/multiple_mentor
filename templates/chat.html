@@ -126,14 +126,10 @@
             const bubble = document.createElement('div');
             bubble.classList.add('message-bubble');
 
-            // 사용자명 (소켓 수신 시 sender_id만 오므로 여기서 처리)
-            const senderName = isMine ? currentUsername : `사용자 ${data.sender_id}`; 
+            // 1. 소켓 데이터에 포함된 username 사용
+            const displayedName = data.sender_username || (isMine ? currentUsername : '상대방');
             
-            // Render 배포 시 상대방 이름(admin1 등)을 실시간으로 가져오기 어려우므로, 
-            // 현재는 임시로 "사용자 ID" 또는 "내 이름"으로 표시합니다.
-            // (정확한 상대방 이름을 표시하려면 소켓 메시지 전송 시 상대방 이름 정보를 포함해야 합니다.)
-            
-            let htmlContent = `<div class="message-info"><strong>${isMine ? currentUsername : '상대방'}</strong></div>`;
+            let htmlContent = `<div class="message-info"><strong>${displayedName}</strong></div>`;
             
             htmlContent += data.content || '';
 

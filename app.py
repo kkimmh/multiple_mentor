@@ -181,6 +181,9 @@ def handle_send_message(data):
     if not content and not image_url:
         return
 
+    sender = User.query.get(user_id)
+    sender_username = sender.username if sender else "알 수 없는 사용자"
+
     msg = Message(conversation_id=conversation_id, sender_id=user_id, content=content, image_path=image_url)
     db.session.add(msg)
     db.session.commit()
@@ -188,7 +191,8 @@ def handle_send_message(data):
     emit("receive_message", {
         "sender_id": user_id,
         "content": content,
-        "image_url": image_url
+        "image_url": image_url,
+        "sender_username": sender_username # 실시간으로 이름 전달
     }, room=f"room_{conversation_id}")
 
 
