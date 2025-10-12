@@ -138,8 +138,19 @@ def chat(conversation_id):
         flash("접근 권한이 없습니다.")
         return redirect(url_for("chat_list"))
 
-    messages = Message.query.filter_by(conversation_id=conversation.id).order_by(Message.timestamp.asc()).all()
-    return render_template("chat.html", conversation=conversation, messages=messages, user=user)
+    # 메시지를 불러올 때 관련된 sender (User) 정보도 함께 불러오도록 함 (joinload)
+    # 이는 DB 관계(Relationship)가 불안정할 때 확실하게 데이터를 로드합니다.
+    messages = Message.query.filter_by(conversation_id=conversation.id) \
+                            .join(User, Message.sender_id == User.id) \
+                            .add_columns(User.username.label('sender_username')) \
+                            .order_by(Message.timestamp.asc()).all()
+
+    # messages는 이제 (Message 객체, sender_username)의 튜플 리스트가 됩니다.
+
+    return render_template("chat.html", 
+                           conversation=conversation, 
+                           messages=messages, 
+                           user=user)
 
 
 # 기존 이미지 업로드 라우트 (채팅용)

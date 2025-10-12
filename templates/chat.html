@@ -74,25 +74,29 @@
     <a href="{{ url_for('chat_list') }}">목록으로 돌아가기</a>
     
     <div id="messages">
-        {% for message in messages %}
-            {% set is_mine = message.sender_id == user.id %}
-            <div class="message-container {% if is_mine %}message-right{% else %}message-left{% endif %}">
-                <div class="message-bubble">
-                    <div class="message-info">
-                        <strong>{{ message.sender.username if message.sender else '알 수 없는 사용자' }}:</strong>
-                    </div>
-                    
-                    {{ message.content }}
-                    
-                    {% if message.image_path %}
-                        <br>
-                        {% set img_path = message.image_path.lstrip('/') %}
-                        <img src="{{ url_for('static', filename=img_path.split('static/')[1]) if 'static/' in img_path else url_for('static', filename=img_path) }}" class="message-img">
-                    {% endif %}
+    {% for message in messages %}
+        {% set msg_obj = message[0] %}
+        {% set sender_username = message[1] %}
+        
+        {% set is_mine = msg_obj.sender_id == user.id %}
+        
+        <div class="message-container {% if is_mine %}message-right{% else %}message-left{% endif %}">
+            <div class="message-bubble">
+                <div class="message-info">
+                    <strong>{{ sender_username if sender_username else '알 수 없는 사용자' }}:</strong>
                 </div>
+                
+                {{ msg_obj.content }}
+                
+                {% if msg_obj.image_path %}
+                    <br>
+                    {% set img_path = msg_obj.image_path.lstrip('/') %}
+                    <img src="{{ url_for('static', filename=img_path.split('static/')[1]) if 'static/' in img_path else url_for('static', filename=img_path) }}" class="message-img">
+                {% endif %}
             </div>
-        {% endfor %}
-    </div>
+        </div>
+    {% endfor %}
+</div>
 
     <form id="chat-form" style="margin-top: 10px;">
         <label for="image-input" class="upload-btn">🖼️</label>
