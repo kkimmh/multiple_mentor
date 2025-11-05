@@ -1,25 +1,22 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO, emit, join_room
 from models import db, User, Conversation, Message
 import os
 import cloudinary
 import cloudinary.uploader
 from dotenv import load_dotenv
+
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "local-secret-key")
 
-# -------------------- 🧠 DB 연결 설정 --------------------
+# -------------------- 🧠 DB 연결 --------------------
 db_url = os.environ.get("DATABASE_URL")
-
-# Render PostgreSQL 주소 형식 수정
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
-# 🔹 로컬이면 SQLite 사용, Render면 PostgreSQL 사용
 if db_url:
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url
     print("✅ Render PostgreSQL 사용 중")
@@ -28,25 +25,32 @@ else:
     print("✅ 로컬 SQLite(local.db) 사용 중")
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-# ----------------------------------------------------------
 
-# -------------------- 🌤️ Cloudinary 설정 --------------------
-cloudinary.config(
-    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.environ.get("CLOUDINARY_API_KEY"),
-    api_secret=os.environ.get("CLOUDINARY_API_SECRET")
-)
+# -------------------- ☁️ Cloudinary 설정 --------------------
+cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME")
+api_key = os.environ.get("CLOUDINARY_API_KEY")
+api_secret = os.environ.get("CLOUDINARY_API_SECRET")
+
+if cloud_name and api_key and api_secret:
+    cloudinary.config(
+        cloud_name=cloud_name,
+        api_key=api_key,
+        api_secret=api_secret
+    )
+    print("✅ Cloudinary 설정 완료")
+else:
+    print("⚠️ Cloudinary 환경변수가 설정되지 않았습니다. (이미지 업로드 불가)")
+
 # ------------------------------------------------------------
 
 db.init_app(app)
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # -------------------- 📦 DB 초기화 --------------------
 with app.app_context():
     db.create_all()
     print("✅ DB 테이블 확인 완료!")
 
-    # 관리자 계정 없으면 자동 생성
     if not User.query.filter_by(is_admin=True).first():
         admins = [
             User(username="admin1", password=generate_password_hash("127127"), is_admin=True),
@@ -56,8 +60,8 @@ with app.app_context():
         db.session.add_all(admins)
         db.session.commit()
         print("✅ 관리자 3명 생성 완료 (admin1~3 / 비번 127127)")
-# --------------------------------------------------------
 
+# ------------------------------------------------------------
 
 @app.route("/")
 def index():
@@ -65,8 +69,7 @@ def index():
         return redirect(url_for("chat_list"))
     return redirect(url_for("login"))
 
-
-# -------------------- 👤 회원가입 --------------------
+# -------------------- 회원가입 --------------------
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -77,16 +80,13 @@ def register():
             flash("이미 존재하는 아이디입니다.")
             return redirect(url_for("register"))
 
-        new_user = User(username=username, password=password)
-        db.session.add(new_user)
+        db.session.add(User(username=username, password=password))
         db.session.commit()
         flash("회원가입 완료! 로그인하세요.")
         return redirect(url_for("login"))
     return render_template("register.html")
-# ----------------------------------------------------
 
-
-# -------------------- 🔐 로그인 --------------------
+# -------------------- 로그인 --------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -102,8 +102,6 @@ def login():
         flash(f"환영합니다, {user.username}님!")
         return redirect(url_for("chat_list"))
     return render_template("login.html")
-# ----------------------------------------------------
-
 
 @app.route("/logout")
 def logout():
@@ -111,8 +109,7 @@ def logout():
     flash("로그아웃되었습니다.")
     return redirect(url_for("login"))
 
-
-# -------------------- 💬 채팅방 목록 --------------------
+# -------------------- 채팅방 목록 --------------------
 @app.route("/chat_list")
 def chat_list():
     if "user_id" not in session:
@@ -129,10 +126,8 @@ def chat_list():
         conversations = Conversation.query.filter_by(user_q_id=user.id).all()
 
     return render_template("chat_list.html", user=user, conversations=conversations)
-# --------------------------------------------------------
 
-
-# -------------------- 🧩 채팅방 생성 --------------------
+# -------------------- 채팅방 생성 --------------------
 @app.route("/create_conversation", methods=["GET", "POST"])
 def create_conversation():
     if "user_id" not in session:
@@ -154,10 +149,8 @@ def create_conversation():
         flash("대화방이 생성되었습니다!")
         return redirect(url_for("chat_list"))
     return render_template("create_conversation.html")
-# --------------------------------------------------------
 
-
-# -------------------- 💭 채팅방 내용 --------------------
+# -------------------- 채팅방 내용 --------------------
 @app.route("/chat/<int:conversation_id>")
 def chat(conversation_id):
     if "user_id" not in session:
@@ -178,14 +171,9 @@ def chat(conversation_id):
                      Message.timestamp) \
         .order_by(Message.timestamp.asc()).all()
 
-    return render_template("chat.html",
-                           conversation=conversation,
-                           messages=messages,
-                           user=user)
-# --------------------------------------------------------
+    return render_template("chat.html", conversation=conversation, messages=messages, user=user)
 
-
-# -------------------- ☁️ Cloudinary 이미지 업로드 --------------------
+# -------------------- 이미지 업로드 --------------------
 @app.route("/upload_image", methods=["POST"])
 def upload_image():
     if "image" not in request.files:
@@ -196,16 +184,16 @@ def upload_image():
         return jsonify({"error": "파일 이름이 없습니다."}), 400
 
     try:
+        if not (cloud_name and api_key and api_secret):
+            raise ValueError("Cloudinary 설정이 없습니다.")
         upload_result = cloudinary.uploader.upload(file)
         image_url = upload_result["secure_url"]
         return jsonify({"image_url": image_url})
     except Exception as e:
         print(f"❌ Cloudinary 업로드 오류: {e}")
-        return jsonify({"error": "Cloudinary 업로드 실패"}), 500
-# ---------------------------------------------------------------------
+        return jsonify({"error": str(e)}), 500
 
-
-# -------------------- 🔥 실시간 메시지 송수신 --------------------
+# -------------------- 실시간 메시지 --------------------
 @socketio.on("send_message")
 def handle_send_message(data):
     conversation_id = data["conversation_id"]
@@ -232,8 +220,6 @@ def handle_send_message(data):
         "content": content,
         "image_url": image_url
     }, room=f"room_{conversation_id}")
-# --------------------------------------------------------
-
 
 @socketio.on("join")
 def on_join(data):
@@ -241,8 +227,7 @@ def on_join(data):
     join_room(room)
     print(f"✅ {room} 방 참여 완료")
 
-
-# -------------------- 🗑️ 대화방 삭제 --------------------
+# -------------------- 대화방 삭제 --------------------
 @app.route("/delete_conversation/<int:conversation_id>")
 def delete_conversation(conversation_id):
     if "user_id" not in session:
@@ -261,14 +246,8 @@ def delete_conversation(conversation_id):
 
     flash(f"'{conversation.title}' 대화방이 삭제되었습니다.")
     return redirect(url_for("chat_list"))
-# --------------------------------------------------------
 
-
+# ------------------------------------------------------------
 if __name__ == "__main__":
-    from flask_socketio import SocketIO
-    socketio = SocketIO(app, cors_allowed_origins="*")
     port = int(os.environ.get("PORT", 5000))
     socketio.run(app, host="0.0.0.0", port=port, debug=False)
-
-
-

@@ -22,16 +22,23 @@
       position: relative;
     }
 
+    header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
     header button {
       position: absolute;
       right: 15px;
-      top: 12px;
-      background: #fff;
+      top: 10px;
+      background: white;
+      color: #4CAF50;
       border: none;
       border-radius: 5px;
-      padding: 7px 12px;
+      padding: 8px 12px;
       cursor: pointer;
       font-weight: bold;
+      font-size: 14px;
     }
 
     header button:hover {
@@ -81,6 +88,7 @@
       padding: 10px;
       border-radius: 5px;
       border: 1px solid #ccc;
+      font-size: 14px;
     }
 
     input[type="file"] {
@@ -93,7 +101,7 @@
       padding: 10px 12px;
       border-radius: 5px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 16px;
     }
 
     .file-label:hover {
@@ -146,8 +154,7 @@
 <body>
   <header>
     <h2>{{ conversation.title }}</h2>
-    <button id="leave-room" class="leave-btn bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600"> 나가기</button>
-
+    <button id="leave-room" onclick="location.href='{{ url_for('chat_list') }}'">나가기</button>
   </header>
 
   <div id="chat-box">
@@ -173,8 +180,9 @@
 
   <script>
     const socket = io();
-    const userId = {{ user.id }};
+    const userId = "{{ user.id }}";
     const conversationId = {{ conversation.id }};
+    const serverUrl = window.location.origin; // ✅ 자동으로 현재 도메인 사용
 
     socket.emit("join", { conversation_id: conversationId });
 
@@ -206,7 +214,7 @@
       if (imageInput.files.length > 0) {
         const formData = new FormData();
         formData.append("image", imageInput.files[0]);
-        const res = await fetch("/upload_image", { method: "POST", body: formData });
+        const res = await fetch(`${serverUrl}/upload_image`, { method: "POST", body: formData });
         const data = await res.json();
         if (data.image_url) imageUrl = data.image_url;
         imageInput.value = "";
@@ -228,7 +236,7 @@
     socket.on("receive_message", (data) => {
       const chatBox = document.getElementById("chat-box");
       const msgDiv = document.createElement("div");
-      msgDiv.className = "message " + (data.sender_id === userId ? "me" : "other");
+      msgDiv.className = "message " + (data.sender_id == userId ? "me" : "other");
 
       if (data.content) {
         const p = document.createElement("p");
@@ -240,6 +248,7 @@
         img.src = data.image_url;
         msgDiv.appendChild(img);
       }
+
       chatBox.appendChild(msgDiv);
       chatBox.scrollTop = chatBox.scrollHeight;
     });
