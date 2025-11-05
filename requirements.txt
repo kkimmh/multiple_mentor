@@ -5,3 +5,4 @@ Flask-SocketIO
 gunicorn
 eventlet 
 werkzeug
+boto3
