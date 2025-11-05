@@ -7,3 +7,4 @@ gunicorn
 cloudinary
 eventlet
 werkzeug
+waitress
