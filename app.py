@@ -44,7 +44,7 @@ else:
 # ------------------------------------------------------------
 
 db.init_app(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 # -------------------- 📦 DB 초기화 --------------------
 with app.app_context():
@@ -249,8 +249,6 @@ def delete_conversation(conversation_id):
 
 # ------------------------------------------------------------
 if __name__ == "__main__":
-    from waitress import serve
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    serve(app, host="0.0.0.0", port=port)
+    socketio.run(app, host="0.0.0.0", port=10000)
+
 
