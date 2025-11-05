@@ -22,11 +22,6 @@
       position: relative;
     }
 
-    header h2 {
-      margin: 0;
-      font-size: 20px;
-    }
-
     header button {
       position: absolute;
       right: 15px;
@@ -38,11 +33,6 @@
       padding: 8px 12px;
       cursor: pointer;
       font-weight: bold;
-      font-size: 14px;
-    }
-
-    header button:hover {
-      background: #f1f1f1;
     }
 
     #chat-box {
@@ -104,10 +94,6 @@
       font-size: 16px;
     }
 
-    .file-label:hover {
-      background-color: #45a049;
-    }
-
     button {
       padding: 10px 15px;
       background-color: #4CAF50;
@@ -116,10 +102,6 @@
       border-radius: 5px;
       cursor: pointer;
       font-weight: bold;
-    }
-
-    button:hover {
-      background-color: #45a049;
     }
 
     img {
@@ -133,21 +115,6 @@
       border-radius: 8px;
       display: none;
       margin-top: 5px;
-    }
-
-    @media (max-width: 600px) {
-      .message {
-        max-width: 85%;
-      }
-      img, #preview {
-        max-width: 120px;
-      }
-      form {
-        flex-direction: column;
-      }
-      .file-label, button {
-        width: 100%;
-      }
     }
   </style>
 </head>
@@ -182,14 +149,14 @@
     const socket = io();
     const userId = "{{ user.id }}";
     const conversationId = {{ conversation.id }};
-    const serverUrl = window.location.origin; // ✅ 자동으로 현재 도메인 사용
+    const serverUrl = window.location.origin;
 
     socket.emit("join", { conversation_id: conversationId });
 
     const imageInput = document.getElementById("image");
     const preview = document.getElementById("preview");
 
-    // ✅ 사진 미리보기 기능
+    // ✅ 사진 미리보기
     imageInput.addEventListener("change", () => {
       const file = imageInput.files[0];
       if (file) {
@@ -204,13 +171,13 @@
       }
     });
 
+    // ✅ 메시지 전송
     document.getElementById("chat-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const messageInput = document.getElementById("message");
       const content = messageInput.value.trim();
       let imageUrl = null;
 
-      // ✅ Cloudinary 업로드
       if (imageInput.files.length > 0) {
         const formData = new FormData();
         formData.append("image", imageInput.files[0]);
@@ -224,7 +191,7 @@
       if (content || imageUrl) {
         socket.emit("send_message", {
           conversation_id: conversationId,
-          user_id: userId,
+          sender_id: userId, // ✅ 명확히 지정
           content: content,
           image_url: imageUrl
         });
@@ -232,11 +199,11 @@
       }
     });
 
-    // ✅ 실시간 메시지 수신
+    // ✅ 메시지 수신
     socket.on("receive_message", (data) => {
       const chatBox = document.getElementById("chat-box");
       const msgDiv = document.createElement("div");
-      msgDiv.className = "message " + (data.sender_id == userId ? "me" : "other");
+      msgDiv.className = "message " + (String(data.sender_id) === String(userId) ? "me" : "other");
 
       if (data.content) {
         const p = document.createElement("p");

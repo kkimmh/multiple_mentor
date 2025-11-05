@@ -163,19 +163,29 @@ def chat(conversation_id):
     conversation = Conversation.query.get_or_404(conversation_id)
     user = User.query.get(session["user_id"])
 
+    # 접근 권한 확인
     if not user.is_admin and conversation.user_q_id != user.id:
         flash("접근 권한이 없습니다.")
         return redirect(url_for("chat_list"))
 
-    messages = Message.query.filter_by(conversation_id=conversation.id) \
-        .join(User, Message.sender_id == User.id) \
-        .add_columns(User.username.label('sender_username'),
-                     Message.content,
-                     Message.image_path,
-                     Message.timestamp) \
-        .order_by(Message.timestamp.asc()).all()
+    # ✅ sender_id 명시 추가
+    messages = (
+        Message.query.filter_by(conversation_id=conversation.id)
+        .join(User, Message.sender_id == User.id)
+        .add_columns(
+            Message.sender_id,
+            User.username.label('sender_username'),
+            Message.content,
+            Message.image_path,
+            Message.timestamp
+        )
+        .order_by(Message.timestamp.asc())
+        .all()
+    )
 
     return render_template("chat.html", conversation=conversation, messages=messages, user=user)
+
+
 
 # -------------------- 이미지 업로드 --------------------
 @app.route("/upload_image", methods=["POST"])
@@ -200,36 +210,44 @@ def upload_image():
 # -------------------- 실시간 메시지 --------------------
 @socketio.on("send_message")
 def handle_send_message(data):
-    conversation_id = data["conversation_id"]
-    user_id = data["user_id"]
-    content = data.get("content", "").strip()
-    image_url = data.get("image_url", None)
+    conversation_id = data.get("conversation_id")
+    sender_id = data.get("user_id")
+    content = data.get("content")
+    image_url = data.get("image_url")
 
-    if not content and not image_url:
+    if not conversation_id or not sender_id:
+        print("⚠️ 대화방 또는 발신자 정보가 없습니다.")
         return
 
-    msg = Message(conversation_id=conversation_id,
-                  sender_id=user_id,
-                  content=content,
-                  image_path=image_url)
-    db.session.add(msg)
+    message = Message(
+        conversation_id=conversation_id,
+        sender_id=sender_id,
+        content=content if content else "",
+        image_path=image_url if image_url else None
+    )
+
+    db.session.add(message)
     db.session.commit()
 
-    sender = User.query.get(user_id)
-    sender_username = sender.username if sender else "알 수 없음"
+    emit(
+        "receive_message",
+        {
+            "conversation_id": conversation_id,
+            "sender_id": sender_id,
+            "content": content,
+            "image_url": image_url,
+        },
+        room=f"room_{conversation_id}",
+    )
 
-    emit("receive_message", {
-        "sender_id": user_id,
-        "sender_username": sender_username,
-        "content": content,
-        "image_url": image_url
-    }, room=f"room_{conversation_id}")
+
 
 @socketio.on("join")
-def on_join(data):
-    room = f"room_{data['conversation_id']}"
-    join_room(room)
-    print(f"✅ {room} 방 참여 완료")
+def handle_join(data):
+    conversation_id = data.get("conversation_id")
+    join_room(f"room_{conversation_id}")
+    print(f"✅ User joined room_{conversation_id}")
+
 
 # -------------------- 대화방 삭제 --------------------
 @app.route("/delete_conversation/<int:conversation_id>")
