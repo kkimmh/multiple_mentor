@@ -45,7 +45,6 @@ else:
 
 db.init_app(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
-
 # -------------------- 📦 DB 초기화 --------------------
 with app.app_context():
     db.create_all()
