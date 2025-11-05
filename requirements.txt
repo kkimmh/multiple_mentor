@@ -1,8 +1,8 @@
-# requirements.txt
-Flask
-Flask-SQLAlchemy
-Flask-SocketIO
-gunicorn
-eventlet 
+flask
+flask_sqlalchemy
+flask_socketio
+python-dotenv
+cloudinary
+psycopg2-binary
+eventlet
 werkzeug
-boto3
