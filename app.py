@@ -49,6 +49,7 @@ else:
 # ------------------------------------------------------------
 
 db.init_app(app)
+print("✅ SocketIO: gevent 모드로 실행 중")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="gevent")
 
 # -------------------- 📦 DB 초기화 --------------------
