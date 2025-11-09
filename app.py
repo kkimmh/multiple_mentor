@@ -1,5 +1,5 @@
-import eventlet
-eventlet.monkey_patch()  # ✅ 맨 위에서 가장 먼저 실행!
+from gevent import monkey
+monkey.patch_all() # ✅ 맨 위에서 가장 먼저 실행!
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -49,7 +49,8 @@ else:
 # ------------------------------------------------------------
 
 db.init_app(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="gevent")
+
 # -------------------- 📦 DB 초기화 --------------------
 with app.app_context():
     db.create_all()
@@ -272,5 +273,4 @@ def delete_conversation(conversation_id):
 # ------------------------------------------------------------
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    socketio.run(app, host="0.0.0.0", port=port)
+    socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
