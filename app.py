@@ -213,7 +213,7 @@ def upload_image():
 @socketio.on("send_message")
 def handle_send_message(data):
     conversation_id = data.get("conversation_id")
-    sender_id = data.get("user_id")
+    sender_id = data.get("sender_id")
     content = data.get("content")
     image_url = data.get("image_url")
 
