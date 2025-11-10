@@ -3,17 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <title>로그인</title>
+  <style>
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      background-color: #121212;
+      color: #f1f1f1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-size: 1.8em;
+      text-align: center;
+    }
+
+    form {
+      background-color: #1e1e1e;
+      padding: 30px 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 300px;
+    }
+
+    label {
+      font-weight: 600;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      background-color: #2a2a2a;
+      color: #fff;
+      font-size: 15px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    a {
+      margin-top: 15px;
+      color: #ccc;
+      text-decoration: none;
+      font-size: 0.95em;
+    }
+
+    a:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
   <h2>로그인</h2>
   <form method="POST">
-    <label>아이디(학번):</label><br>
-    <input type="text" name="username" required><br>
-    <label>비밀번호:</label><br>
-    <input type="password" name="password" required><br><br>
+    <label>아이디(학번):</label>
+    <input type="text" name="username" required>
+
+    <label>비밀번호:</label>
+    <input type="password" name="password" required>
+
     <button type="submit">로그인</button>
   </form>
-  <br>
   <a href="/register">회원가입</a>
 </body>
 </html>

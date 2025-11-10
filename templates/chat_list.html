@@ -4,12 +4,55 @@
     <meta charset="UTF-8">
     <title>대화 목록</title>
     <style>
-        /* 삭제 버튼 스타일을 좀 더 보기 좋게 추가 */
+        body {
+            font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+            background-color: #121212;
+            color: #f1f1f1;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            width: 100%;
+            max-width: 600px;
+        }
+
         .conversation-item {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            background-color: #1e1e1e;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            transition: background 0.2s;
         }
+
+        .conversation-item:hover {
+            background-color: #2a2a2a;
+        }
+
+        .conversation-item a {
+            color: #f1f1f1;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
         .delete-link {
             margin-left: 15px;
             color: red;
@@ -18,9 +61,45 @@
             padding: 2px 5px;
             border: 1px solid red;
             border-radius: 4px;
+            transition: 0.2s;
         }
+
         .delete-link:hover {
             background-color: #ffe0e0;
+            color: #900;
+        }
+
+        .actions {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .action-btn {
+            text-decoration: none;
+            color: #121212;
+            background-color: #f1f1f1;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+            transition: 0.2s;
+        }
+
+        .action-btn:hover {
+            background-color: #e0e0e0;
+        }
+
+        .logout-btn {
+            background-color: transparent;
+            border: 1px solid #f1f1f1;
+            color: #f1f1f1;
+        }
+
+        .logout-btn:hover {
+            background-color: #f1f1f1;
+            color: #121212;
         }
     </style>
 </head>
@@ -31,22 +110,23 @@
         {% for c in conversations %}
             <li class="conversation-item">
                 <a href="{{ url_for('chat', conversation_id=c.id) }}">{{ c.title }}</a>
-                
+
                 {% if user.is_admin %}
                     <a href="{{ url_for('delete_conversation', conversation_id=c.id) }}"
                        onclick="return confirm('정말로 [{{ c.title }}] 채팅방을 삭제하시겠습니까? (메시지 포함)');"
-                       class="delete-link">[삭제]</a>
+                       class="delete-link">삭제</a>
                 {% endif %}
-                </li>
+            </li>
         {% else %}
-            <li>대화방이 없습니다.</li>
+            <li style="text-align:center;">대화방이 없습니다.</li>
         {% endfor %}
     </ul>
 
-    {% if not user.is_admin %}
-        <a href="{{ url_for('create_conversation') }}">새 대화방 만들기</a><br>
-    {% endif %}
-    
-    <a href="{{ url_for('logout') }}">로그아웃</a>
+    <div class="actions">
+        {% if not user.is_admin %}
+            <a href="{{ url_for('create_conversation') }}" class="action-btn">＋ 새 대화방 만들기</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}" class="action-btn logout-btn">로그아웃</a>
+    </div>
 </body>
 </html>
